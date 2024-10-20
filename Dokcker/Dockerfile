@@ -1,5 +1,5 @@
 # 使用 Ubuntu 22.04 作为基础镜像
-FROM ubuntu:22.04
+FROM m.daocloud.io/ubuntu:22.04
 
 # 设置环境变量，避免在安装时交互
 ENV DEBIAN_FRONTEND=noninteractive
@@ -38,11 +38,29 @@ RUN apt-get update && apt-get install -y \
     vim \
     && apt-get clean
 
-# 安装 protobuf 和 gRPC
-RUN apt-get install -y protobuf-compiler \
-    libprotobuf-dev \
-    grpc \
-    libgrpc++-dev
+# 安装 protobuf
+RUN apt-get install -y autoconf automake libtool curl make g++ unzip
+RUN git clone https://github.com/protocolbuffers/protobuf.git /root/protobuf
+WORKDIR /root/protobuf
+RUN git submodule update --init --recursive
+RUN ./autogen.sh
+RUN ./configure
+RUN make -j4
+RUN make check
+RUN sudo make install
+RUN sudo ldconfig
+
+# 安装 gRPC
+WORKDIR /root
+RUN git clone --recurse-submodules -b v1.41.1 https://github.com/grpc/grpc
+WORKDIR /root/grpc
+RUN git submodule update --init
+RUN mkdir -p cmake/build
+WORKDIR /root/grpc/cmake/build
+RUN cmake ../..
+RUN make -j4
+RUN sudo make install
+RUN sudo ldconfig
 
 # 设置工作目录
 WORKDIR /root
