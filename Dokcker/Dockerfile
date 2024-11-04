@@ -87,7 +87,7 @@ RUN ./install_grpc_deps.sh \
 # 返回根目录
 WORKDIR /root
 
-# 克隆并安装 P4C（P4 编译器）
+# 克隆并安装 P4C（p4 编译器）
 RUN git clone https://github.com/p4lang/p4c.git
 WORKDIR /root/p4c
 RUN git submodule update --init --recursive \
