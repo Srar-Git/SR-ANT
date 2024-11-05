@@ -41,5 +41,6 @@ RUN sudo update-alternatives --config nc
 RUN pip3 install scapy setuptools_rust cryptography==3.3.2 -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
 
 
-CMD ["python3", "/root/main.py", " > /var/log/controller.log 2>&1"]
-
+#CMD ["python3", "/root/main.py", " > /var/log/controller.log 2>&1"]
+ENTRYPOINT ["python3", "/root/main.py"]
+CMD [">", "/var/log/controller.log", "2>&1"]
