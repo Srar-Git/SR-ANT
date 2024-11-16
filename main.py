@@ -42,8 +42,8 @@ def build_topo():
     logging.info(f"current work path：{current_path}")
     cnet = Containernet()
     logging.info("=====Adding Hosts=====")
-    h1 = cnet.addDocker('h1', ip="192.168.1.1/24", network_mode="none",dimage="docker.zhai.cm/p4lang/p4c")
-    h2 = cnet.addDocker('h2', ip="192.168.1.2/24", network_mode="none",dimage="docker.zhai.cm/p4lang/p4c")
+    h1 = cnet.addDocker('h1', ip="192.168.1.1/24", network_mode="none",dimage="cnet:latest")
+    h2 = cnet.addDocker('h2', ip="192.168.1.2/24", network_mode="none",dimage="cnet:latest")
     logging.info("=====Adding Docker Switch for p4=====")
     s1 = cnet.addDocker('s1', dimage="docker.zhai.cm/p4lang/p4c",
                         volumes=["{}/instances/:/instances/:rw".format(project_path)])
