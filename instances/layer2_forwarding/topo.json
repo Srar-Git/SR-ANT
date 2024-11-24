@@ -1,0 +1,28 @@
+{
+  "nodes": [
+    {
+      "type": "host",
+      "name": "h1",
+      "ip": "192.168.0.1/24"
+    },
+    {
+      "type": "host",
+      "name": "h2",
+      "ip": "192.168.0.2/24"
+    },
+    {
+      "type": "switch",
+      "name": "s1"
+    }
+  ],
+  "links": [
+    {
+      "node1": "h2",
+      "node2": "s1"
+    },
+    {
+      "node1": "h1",
+      "node2": "s1"
+    }
+  ]
+}

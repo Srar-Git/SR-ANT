@@ -1,4 +1,4 @@
-FROM docker.zhai.cm/ubuntu:22.04
+FROM dockerpull.org/ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -53,13 +53,12 @@ RUN wget https://www.tcpdump.org/release/libpcap-1.10.5.tar.xz && \
 
 RUN sudo update-alternatives --config nc
 
-RUN pip3 install scapy
+RUN pip3 install scapy -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
 
 RUN sudo apt-get install apt-transport-https
 RUN sudo apt update
 RUN sudo apt install -y tcpdump vim
-ADD nqa.py /root
-ADD sendcustpkt.py /root/
+#ADD Docker/host/pkt_manager.py /root/
 
 COPY docker-ce_18.06.3_ce_3-0_debian_amd64.deb /root/
 RUN dpkg -i /root/docker-ce_18.06.3_ce_3-0_debian_amd64.deb
