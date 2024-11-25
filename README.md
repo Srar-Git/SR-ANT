@@ -1,6 +1,6 @@
 1. controller run:
 ```
-docker run --name controller -dit --privileged --pid='host' --network=host -v /data00/home/pengyufan/PycharmProjects/SR-ANT:/root/ -v /var/run/docker.sock:/var/run/docker.sock controller:latest /data00/home/pengyufan/PycharmProjects/SR-ANT
+docker run --name controller -dit --privileged --pid='host' --network=host -v /data00/home/pengyufan/PycharmProjects/SR-ANT:/root/ -v /var/run/docker.sock:/var/run/docker.sock --rm controller:latest /data00/home/pengyufan/PycharmProjects/SR-ANT
 ```
 2. build p4:
 ```

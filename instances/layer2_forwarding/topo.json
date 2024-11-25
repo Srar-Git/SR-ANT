@@ -12,7 +12,8 @@
     },
     {
       "type": "switch",
-      "name": "s1"
+      "name": "s1",
+      "p4": "layer_two"
     }
   ],
   "links": [

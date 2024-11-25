@@ -19,10 +19,11 @@ class StartTopo(Resource):
 
     def post(self, instance_name):
         try:
-            topo.GLOBAL_TOPO = topo.TopoNet()
+            topo.GLOBAL_TOPO = topo.TopoNet(instance_name)
             topo_path = f"/root/instances/{instance_name}/{const.TOPO_JSON_NAME}"
             topo.GLOBAL_TOPO.build_topology_from_json(topo_path)
             topo.GLOBAL_TOPO.start()
+            topo.GLOBAL_TOPO.compile_all_switch_p4()
             return {"success": True, "errorCode": "", "errorMessage": ""}
         except Exception as e:
             return {"success": False, "errorCode": "", "errorMessage": "{}".format(e)}
