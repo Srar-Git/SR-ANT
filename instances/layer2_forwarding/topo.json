@@ -13,17 +13,25 @@
     {
       "type": "switch",
       "name": "s1",
-      "p4": "layer_two"
+      "p4": "layer_two",
+      "intfs": [
+        "0:eth0",
+        "1:eth1"
+      ]
     }
   ],
   "links": [
     {
       "node1": "h2",
-      "node2": "s1"
+      "node2": "s1",
+      "port1": "0",
+      "port2": "1"
     },
     {
       "node1": "h1",
-      "node2": "s1"
+      "node2": "s1",
+      "port1": "0",
+      "port2": "0"
     }
   ]
 }

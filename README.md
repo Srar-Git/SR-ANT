@@ -8,7 +8,7 @@ p4c-bm2-ss --p4v 16 layer_two.p4 -o layer_two.json
 ```
 3. start switch:
 ```
-simple_switch -i 1@s1-eth0 -i 2@s1-eth1 --thrift-port 9191 layer_two.json
+simple_switch -i 0@s1-eth0 -i 1@s1-eth1 --thrift-port 9191 layer_two.json
 ```
 4. load runtime command:
 ```

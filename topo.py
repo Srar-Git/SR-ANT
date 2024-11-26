@@ -2,6 +2,8 @@ import json
 import logging
 import re
 import threading
+import time
+
 from mininet.net import Containernet
 
 import const
@@ -11,30 +13,44 @@ from main import logger
 GLOBAL_TOPO = None
 
 
+class Link(object):
+    def __init__(self, node1, node2, port1=None, port2=None, bw=0):
+        self.node1 = node1
+        self.node2 = node2
+        self.port1 = int(port1)
+        self.port2 = int(port2)
+        self.bw = bw
+
 
 class Bmv2Switch(object):
-    def __init__(self, name, p4):
+    def __init__(self, name, p4, intfs):
         self.name = name
         self.p4 = p4
+        self.intfs = intfs
 
-    def execute_cmd(self, topo, cmd):
+    def execute_cmd(self, topo, cmd, popen=False):
         node = topo.get_node(self.name)
-        res = node.cmd(cmd)
-        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-        res = ansi_escape.sub('', res)
-        res = re.sub(r'\r', '', res)
-        logger.info("execute cmd %s on node %s, res %s" % (cmd, node.name, res))
-        return res
+        if popen:
+            node.popen(cmd)
+            logger.info("execute popen cmd %s on node %s" % (cmd, node.name))
+            return None
+        else:
+            res = node.cmd(cmd)
+            ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+            res = ansi_escape.sub('', res)
+            res = re.sub(r'\r', '', res)
+            logger.info("execute cmd %s on node %s, res %s" % (cmd, node.name, res))
+            return res
 
     def start_bmv2(self, topo):
-        self.execute_cmd(topo, "simple_switch -i 1@s1-eth0 -i 2@s1-eth1 --thrift-port 9191 layer_two.json")
-        node = topo.get_node(self.name)
-        res = node.cmd(cmd)
-        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-        res = ansi_escape.sub('', res)
-        res = re.sub(r'\r', '', res)
-        logger.info("execute cmd %s on node %s, res %s" % (cmd, node.name, res))
-        return res
+        cmd = "simple_switch"
+        for port_num, intf_name in self.intfs.items():
+            cmd += f" -i {port_num}@{self.name}-{intf_name}"
+        cmd += f" --thrift-port 9191 /instances/{topo.instance_name}/p4/{self.p4}.json"
+        cmd += f" > /instances/{topo.instance_name}/bmv2_{self.name}.log 2>&1 &"
+        self.execute_cmd(topo, cmd, popen=True)
+
+
 
 class Host(object):
     def __init__(self, name, ip, ipv6=None):
@@ -51,10 +67,12 @@ class TopoNet(object):
         self.started = False
         self.mini_hosts = {}
         self.mini_switches = {}
+        self.mini_links = {}
         # Bmv2Switch
         self.switches = {}
         # Host
         self.hosts = {}
+        self.links = {}
         self.topology = None
 
     def build_topology_from_json(self, json_file):
@@ -67,23 +85,29 @@ class TopoNet(object):
                 self.add_host(h)
                 logging.info(f"added host: {node['name']}")
             elif node['type'] == 'switch':
-                s = Bmv2Switch(node['name'], node['p4'])
+                intf_list = node['intfs']
+                intfs = {}
+                for i in intf_list:
+                    num = i.split(":")[0]
+                    eth = i.split(":")[1]
+                    intfs[num] = eth
+                s = Bmv2Switch(node['name'], node['p4'], intfs)
                 self.add_switch(s)
                 logging.info(f"added sw: {node['name']}")
 
         logging.info("=====Adding Links=====")
         for link in self.topology['links']:
-            logging.info(link['node1'])
-            logging.info(link['node2'])
-            logging.info(self.get_node(link['node1']))
-            logging.info(self.get_node(link['node2']))
             node1 = self.get_node(link['node1'])
+            port1 = link['port1']
+            port2 = link['port2']
             node2 = self.get_node(link['node2'])
-            if not node1 or not node2:
+            if not node1 or not node2 or not port1 or not port2:
                 logging.error(f"Cannot add link: {link['node1']} or {link['node2']} not found!")
                 continue
             try:
-                self.cnet.addLink(node1, node2)
+                l = Link(node1, node2, port1=port1, port2=port2)
+                self.add_link(l)
+                # self.cnet.addLink(node1, node2)
             except Exception as e:
                 logging.error(e)
             logging.info(f"added link: {link['node1']}-{link['node2']}")
@@ -91,8 +115,12 @@ class TopoNet(object):
     def compile_all_switch_p4(self):
         for name, sw in self.switches.items():
             p4 = sw.p4
-            sw.execute_cmd(self, f"p4c-bm2-ss --p4v 16 /instances/{self.instance_name}/p4/{p4}.p4 -o /instances/{self.instance_name}/p4/{p4}.json")
-
+            sw.execute_cmd(self,
+                           f"p4c-bm2-ss --p4v 16 /instances/{self.instance_name}/p4/{p4}.p4 -o /instances/{self.instance_name}/p4/{p4}.json")
+            sw.start_bmv2(self)
+            time.sleep(5)
+            sw.execute_cmd(self,
+                           f"simple_switch_CLI --thrift-port 9191 < /instances/{self.instance_name}/run_time/cmd.txt")
     def add_host(self, host):
         h = self.cnet.addDocker(host.name, ip=host.ip, network_mode="none", dimage=const.DOCKER_HOST_IMAGE,
                                 volumes=["{}/host_utils/:/root/:rw".format(const.PROJECT_PATH)])
@@ -104,10 +132,16 @@ class TopoNet(object):
         self.cnet.removeDocker(name)
 
     def add_switch(self, switch):
-        s = self.cnet.addDocker(switch.name, dimage=const.DOCKER_SWITCH_IMAGE,
+        s = self.cnet.addDocker(switch.name, dimage=const.DOCKER_SWITCH_IMAGE, network_mode="none",
                                 volumes=["{}/instances/:/instances/:rw".format(const.PROJECT_PATH)])
         self.mini_switches[switch.name] = s
         self.switches[switch.name] = switch
+
+    def add_link(self, link):
+        l = self.cnet.addLink(link.node1, link.node2, port1=link.port1, port2=link.port2)
+        # l = self.cnet.addLink(link.node1, link.node2)
+        self.mini_links[f"{link.node1}-{link.node2}"] = l
+        self.links[f"{link.node1}-{link.node2}"] = link
 
     def remove_switch(self, name):
         self.cnet.removeDocker(name)
