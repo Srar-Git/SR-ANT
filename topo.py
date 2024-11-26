@@ -43,11 +43,11 @@ class Bmv2Switch(object):
             return res
 
     def start_bmv2(self, topo):
-        cmd = "simple_switch"
+        cmd = "simple_switch -L debug"
         for port_num, intf_name in self.intfs.items():
             cmd += f" -i {port_num}@{self.name}-{intf_name}"
-        cmd += f" --thrift-port 9191 /instances/{topo.instance_name}/p4/{self.p4}.json"
-        cmd += f" > /instances/{topo.instance_name}/bmv2_{self.name}.log 2>&1 &"
+        cmd += f" --thrift-port 9191 --log-file /instances/{topo.instance_name}/bmv2_{self.name}.log /instances/{topo.instance_name}/p4/{self.p4}.json"
+        # cmd += f" > /instances/{topo.instance_name}/bmv2_{self.name}.log 2>&1 &"
         self.execute_cmd(topo, cmd, popen=True)
 
 
