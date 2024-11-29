@@ -1,0 +1,2 @@
+table_add sr_end_table srv6_pop A4:44::44 =>
+table_add ipv6_lpm_table forward 2::2/128 => 1 00:00:00:00:04:02

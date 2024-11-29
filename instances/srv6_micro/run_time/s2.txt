@@ -1,0 +1,1 @@
+table_add ipv6_lpm_table forward A3:33::33/128 => 1 00:00:00:00:02:02

@@ -14,11 +14,13 @@ GLOBAL_TOPO = None
 
 
 class Link(object):
-    def __init__(self, node1, node2, port1=None, port2=None, bw=0):
+    def __init__(self, node1, node2, port1=None, port2=None, mac1=None, mac2=None, bw=0):
         self.node1 = node1
         self.node2 = node2
         self.port1 = int(port1)
         self.port2 = int(port2)
+        self.mac1 = mac1
+        self.mac2 = mac2
         self.bw = bw
 
 
@@ -49,6 +51,10 @@ class Bmv2Switch(object):
         cmd += f" --thrift-port 9191 --log-file /instances/{topo.instance_name}/bmv2_{self.name}.log /instances/{topo.instance_name}/p4/{self.p4}.json"
         # cmd += f" > /instances/{topo.instance_name}/bmv2_{self.name}.log 2>&1 &"
         self.execute_cmd(topo, cmd, popen=True)
+
+    def load_runtime(self, topo):
+        cmd = f"simple_switch_CLI --thrift-port 9191 < /instances/{topo.instance_name}/run_time/{self.name}.txt"
+        self.execute_cmd(topo, cmd, popen=False)
 
 
 
@@ -100,12 +106,14 @@ class TopoNet(object):
             node1 = self.get_node(link['node1'])
             port1 = link['port1']
             port2 = link['port2']
+            mac1 = link['mac1']
+            mac2 = link['mac2']
             node2 = self.get_node(link['node2'])
             if not node1 or not node2 or not port1 or not port2:
                 logging.error(f"Cannot add link: {link['node1']} or {link['node2']} not found!")
                 continue
             try:
-                l = Link(node1, node2, port1=port1, port2=port2)
+                l = Link(node1, node2, port1=port1, port2=port2, mac1=mac1, mac2=mac2)
                 self.add_link(l)
                 # self.cnet.addLink(node1, node2)
             except Exception as e:
@@ -119,8 +127,8 @@ class TopoNet(object):
                            f"p4c-bm2-ss --p4v 16 /instances/{self.instance_name}/p4/{p4}.p4 -o /instances/{self.instance_name}/p4/{p4}.json")
             sw.start_bmv2(self)
             time.sleep(5)
-            sw.execute_cmd(self,
-                           f"simple_switch_CLI --thrift-port 9191 < /instances/{self.instance_name}/run_time/cmd.txt")
+            sw.load_runtime(self)
+
     def add_host(self, host):
         h = self.cnet.addDocker(host.name, ip=host.ip, network_mode="none", dimage=const.DOCKER_HOST_IMAGE,
                                 volumes=["{}/host_utils/:/root/:rw".format(const.PROJECT_PATH)])
@@ -138,12 +146,29 @@ class TopoNet(object):
         self.switches[switch.name] = switch
 
     def add_link(self, link):
-        l = self.cnet.addLink(link.node1, link.node2, port1=link.port1, port2=link.port2)
+        # intf1_params = {}
+        # intf2_params = {}
+        # if link.mac1:
+        #     intf1_params['mac1'] = link.mac1
+        # if link.mac2:
+        #     intf2_params['mac2'] = link.mac2
+        l = self.cnet.addLink(
+            link.node1,
+            link.node2,
+            port1=link.port1,
+            port2=link.port2,
+            addr1=link.mac1,
+            addr2=link.mac2
+        )
+        # l = self.cnet.addLink(link.node1, link.node2, port1=link.port1, port2=link.port2, mac1=link.mac1, mac2=link.mac2)
         # l = self.cnet.addLink(link.node1, link.node2)
         self.mini_links[f"{link.node1}-{link.node2}"] = l
         self.links[f"{link.node1}-{link.node2}"] = link
 
     def remove_switch(self, name):
+        sw = self.switches.get(name)
+        sw.execute_cmd(self, f"rm /instances/{self.instance_name}/p4/{sw.p4}.json")
+        sw.execute_cmd(self, f"rm /instances/{self.instance_name}/bmv2_{sw.name}.log.txt")
         self.cnet.removeDocker(name)
 
     def get_node(self, name):
