@@ -257,7 +257,7 @@ control ingress(inout headers_t hdr,
     	mark_to_drop(standard_metadata);
     }
 
-    action insert_srh(bit<8> num_segments){
+    action insert_srh_num(bit<8> num_segments){
         hdr.srh.setValid();
         hdr.srh.next_hdr = hdr.ipv6.next_hdr;
         hdr.srh.hdr_ext_len = num_segments * 2;
@@ -272,7 +272,7 @@ control ingress(inout headers_t hdr,
     action insert_srh(ipv6_addr_t s1, ipv6_addr_t s2, ipv6_addr_t s3){
         hdr.ipv6.dst_addr = s1;
         hdr.ipv6.payload_len = hdr.ipv6.payload_len + 56;
-        insert_srh(3);
+        insert_srh_num(3);
         hdr.segment_list[0].setValid();
         hdr.segment_list[0].sid = s3;
         hdr.segment_list[1].setValid();
@@ -293,10 +293,12 @@ control ingress(inout headers_t hdr,
 
     action end() {
         hdr.srh.segment_left = hdr.srh.segment_left - 1;
-        hdr.ipv6.dst_addr = hdr.segment_list[hdr.srh.last_entry - hdr.srh.segment_left].sid;
+        hdr.ipv6.dst_addr = local_metadata.next_sid;
+        //hdr.ipv6.dst_addr = hdr.segment_list[hdr.srh.last_entry - hdr.srh.segment_left].sid;
     }
 
     action srv6_pop() {
+        end();
         hdr.ipv6.next_hdr = hdr.srh.next_hdr;
         bit<16> srh_size = (((bit<16>)hdr.srh.last_entry + 1) << 4) + 8;
         hdr.ipv6.payload_len = hdr.ipv6.payload_len - srh_size;
