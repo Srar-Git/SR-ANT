@@ -1,0 +1,2 @@
+table_add sr_source_table insert_srh 0 => A3:33::33 A4:44::44 2::2
+table_add ipv6_lpm_table forward A3:33::33/128 => 1 00:00:00:00:01:02

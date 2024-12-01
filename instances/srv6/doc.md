@@ -25,26 +25,26 @@ warn: this run time only for h1 -> h2, not h2 -> h1
 ## s1
 ````
 # check if the mac is local host ingress interface mac
-local_mac_table NoAction 00:00:00:00:01:01 => 
-# if s1 as the end node, do end
-local_sid_table end A1:11::11/128 => 
-# if s1 as the source node, do insert sids
-transit_table insert_segment_list_3 2::2/128 => A2:22::22 A3:33::33 2::2
-# transit action s1 -> s2, s1 port 0 egress, dst mac is s2 eth0
-routing_v6_table set_next_hop A2:22::22/128 => 00:00:00:00:02:01 1
+table_add sr_source_table insert_srh 0 => A3:33::33 A4:44::44 2::2
+# the ipv6 forward
+table_add ipv6_lpm_table forward A3:33::33/128 => 1 00:00:00:00:01:02
 ````
 ## s2
 ```
-local_mac_table NoAction 00:00:00:00:02:01 => 
-routing_v6_table set_next_hop A3:33::33/128 => 00:00:00:00:03:01 1
-routing_v6_table set_next_hop 1::1/128 => 10:00:00:00:00:01 0
+table_add ipv6_lpm_table forward A3:33::33/128 => 1 00:00:00:00:02:02
 ````
 ## s3
 ````
-local_mac_table NoAction 00:00:00:00:03:01 => 
-local_sid_table end A3:33::33/128 => 
-routing_v6_table set_next_hop A2:22::22/128 => 20:00:00:00:00:01 1
+table_add sr_end_table end A3:33::33 =>
+table_add ipv6_lpm_table forward A4:44::44/128 => 1 00:00:00:00:03:02
+````
+## s4
+````
+table_add sr_end_table srv6_pop A4:44::44 =>
+table_add ipv6_lpm_table forward 2::2/128 => 1 00:00:00:00:04:02
 ````
 # send packet
 `python3 pkt_manager.py eth0 1::1 2::2 "qqq"`
+
+# sniff packet
 `python3 sniff.py h2-eth0`
