@@ -1,7 +1,23 @@
+### Docker images load
+go in `Dokcker/images`
+use commands:
+```
+docker load -i controller.tar
+docker tag <image ID> controller:latest
+docker load -i containernet_host.tar
+docker tag <image ID> containernet_host:latest
+docker load -i host.tar
+docker tag <image ID> host:latest
+docker load -i switch_p4c.tar
+docker tag <image ID> switch_p4c:latest
+```
+
+
 1. controller run:
 ```
 docker run --name controller -dit --privileged --pid='host' --network=host -v /data00/home/pengyufan/PycharmProjects/SR-ANT:/root/ -v /var/run/docker.sock:/var/run/docker.sock --rm controller:latest /data00/home/pengyufan/PycharmProjects/SR-ANT
 docker run --name controller -dit --privileged --pid='host' --network=host -v /home/zzz/PycharmProjects/SR-ANT:/root/ -v /var/run/docker.sock:/var/run/docker.sock --rm controller:latest /home/zzz/PycharmProjects/SR-ANT
+docker run --name controller -dit --privileged --pid='host' --network=host -v /Users/srar/PycharmProjects/SR-ANT:/root/ -v /var/run/docker.sock:/var/run/docker.sock --rm controller:latest /Users/srar/PycharmProjects/SR-ANT
 ```
 2. build p4:
 ```

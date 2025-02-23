@@ -1,9 +1,10 @@
 #!//usr//bin//python
 import heapq
 import sys
+import numpy as np
 import random
 
-def genFatTree(podsNum):     #podsNum is 2,3,4...
+def genFatTree(podsNum):
     sys.setrecursionlimit(1000000)
     L1 = (podsNum//2)*(podsNum//2)
     L2 = (podsNum//2)*podsNum
@@ -114,6 +115,51 @@ def transform_graph(old, depot_list):
     #     print(row)
     return expanded_array
 
+def adjacency_matrix_to_paths(adj_matrix):
+    """
+    Convert an adjacency matrix to a list of direct paths.
+
+    Parameters:
+        adj_matrix (list of list of int): The adjacency matrix of the graph.
+                                          A value of 1 indicates a connection.
+    Returns:
+        list of tuple: A list of tuples representing direct paths (i, j).
+    """
+    paths = []
+    for i in range(len(adj_matrix)):
+        for j in range(i + 1, len(adj_matrix)):  # Avoid duplicate paths (i, j) and (j, i)
+            if adj_matrix[i][j] == 1:  # Check if there is a direct connection
+                paths.append((i+1, j+1))  # Add the path (i, j)
+    return paths
+
+
+def generate_uncovered_edges_matrix(adj_matrix, path_list):
+    """
+    Generate a new adjacency matrix representing edges not covered by the given path list.
+
+    Parameters:
+        adj_matrix (list of list of int): The original adjacency matrix.
+        path_list (list of list of int): The list of paths, where each path is a sequence of nodes (1-based index).
+
+    Returns:
+        list of list of int: A new adjacency matrix representing uncovered edges.
+    """
+    n = len(adj_matrix)
+    uncovered_matrix = np.array(adj_matrix, dtype=int)
+
+    # Mark edges in the path list as covered (0 in the new matrix)
+    for path in path_list:
+        for i in range(len(path) - 1):
+            u, v = path[i] - 1, path[i + 1] - 1  # Convert 1-based index to 0-based
+            uncovered_matrix[u][v] = 0
+            uncovered_matrix[v][u] = 0  # Since the graph is undirected
+
+    return uncovered_matrix.tolist()
+
+
+
+
+
 if __name__ == '__main__':
     topo, host, sNum = genFatTree(4)  # podsNum must be larger than 2, and must be even number
     print("topo:")
@@ -128,7 +174,6 @@ if __name__ == '__main__':
     print("total switch nums:")
     print(sNum)
 
-    # 计算所有节点的最短距离
     distance_matrix = []
     for node in range(len(topo[0])):
         distance = dijkstra(topo, node)
@@ -146,3 +191,24 @@ if __name__ == '__main__':
         for j in i:
             print(j, end=' ')
         print("")
+
+    path_list = adjacency_matrix_to_paths(topo)
+    print("path list:", path_list)
+
+    # Example path list (1-based index)
+    path_list = [
+        [16, 7, 2, 5, 13],
+        [20, 12, 3, 8, 15],
+        [18, 10, 4, 6, 14],
+        [19, 11, 1, 9, 17]
+    ]
+
+    # Generate the new adjacency matrix
+    new_adj_matrix = generate_uncovered_edges_matrix(topo, path_list)
+
+    # Print the new adjacency matrix
+    print("new adj matrix:")
+    for row in new_adj_matrix:
+        print(row)
+    path_list = adjacency_matrix_to_paths(new_adj_matrix)
+    print("path list:", path_list)
